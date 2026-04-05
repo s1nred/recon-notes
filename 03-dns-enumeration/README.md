@@ -3,6 +3,29 @@
 > Goal: extract DNS records, discover subdomains, attempt zone transfers.
 > DNS leaks a LOT of infrastructure information if misconfigured.
 
+## Quick Decision Flow
+
+```text
+Start with core public records
+    |
+    +--> NS / MX / TXT / A / AAAA
+    |
+    +--> If nameservers are exposed, try AXFR
+    |
+    +--> Run passive subdomain collection
+    |
+    +--> Use active brute force only if needed
+    |
+    +--> If web is present, test vhosts separately
+```
+
+## What This Phase Should Produce
+
+- nameservers and mail infrastructure
+- TXT records worth reviewing
+- real subdomains that resolve
+- clues about providers, environments, and naming patterns
+
 ---
 
 ## 3.1 Basic DNS Queries (dig)
@@ -10,9 +33,6 @@
 ```bash
 # A record (IPv4)
 dig A target.com
-
-# All records
-dig ANY target.com
 
 # MX records (mail servers)
 dig MX target.com
@@ -35,6 +55,8 @@ dig @8.8.8.8 A target.com
 # Short output
 dig +short A target.com
 ```
+
+**Note:** `dig ANY` is intentionally not recommended as a primary technique. Many servers restrict it, and it should not be treated as a reliable way to retrieve all records.
 
 ---
 
@@ -111,11 +133,9 @@ dnsrecon -d target.com -t brt -D /usr/share/wordlists/dns/subdomains-top1million
 
 # gobuster DNS mode
 gobuster dns -d target.com -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt
-
-# ffuf DNS bruteforce
-ffuf -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt \
-     -u http://FUZZ.target.com -v
 ```
+
+**Important:** do not treat `ffuf` here as DNS brute force. If you use it with hostnames or `Host` headers, that is usually web application or vhost testing, not pure DNS enumeration.
 
 ---
 
@@ -181,17 +201,31 @@ gobuster vhost -u http://10.10.10.5 \
 
 **Important for HTB:** many machines host multiple services on different virtual hosts.
 
+**Keep the distinction clear:**
+
+- DNS enumeration asks whether a hostname exists in DNS
+- vhost enumeration asks whether a web server behaves differently for another `Host` header
+
 ---
 
 ## 📋 Checklist
 
-- [ ] dig ANY — grab all public records
+- [ ] Query core record types directly (A, AAAA, NS, MX, TXT, CNAME)
 - [ ] Attempt zone transfer (AXFR) on all nameservers
 - [ ] Passive subdomain enum (subfinder, assetfinder)
 - [ ] Active subdomain brute force (dnsx, gobuster dns)
 - [ ] Reverse lookups on discovered IPs
 - [ ] Virtual host fuzzing if web server found
 - [ ] Check TXT records for sensitive info (API keys, configs)
+
+---
+
+## Common Mistakes
+
+- Assuming `dig ANY` is a full DNS dump
+- Mixing DNS brute force and vhost discovery as if they were the same task
+- Ignoring TXT records even though they often reveal providers or mail setup
+- Brute forcing too early before passive sources have been reviewed
 
 ---
 

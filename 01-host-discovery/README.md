@@ -3,6 +3,24 @@
 > Goal: identify live hosts in a network before deeper scanning.
 > Always start here — no point scanning ports on dead hosts.
 
+## Quick Decision Flow
+
+```text
+On the same local network?
+    |
+    +--> Yes: use ARP-based discovery first
+    |
+    +--> No: start with ICMP or TCP-based discovery
+             |
+             +--> If results look too empty, test with -Pn
+```
+
+## What This Phase Should Produce
+
+- a reliable list of live hosts
+- a note on which discovery method actually worked
+- a shortlist of targets worth deeper scanning
+
 ---
 
 ## 1.1 ICMP Ping Sweep (Nmap)
@@ -23,6 +41,8 @@ nmap -sn -n 10.10.10.0/24
 
 **When to use:** first sweep on a /24. Quick, works over most networks.
 **Limitation:** hosts with ICMP blocked will appear as down.
+
+**Practical note:** if a range looks empty too quickly, treat that as possible filtering instead of proof that no hosts exist.
 
 ---
 
@@ -73,6 +93,8 @@ nmap -Pn -sV 10.10.10.5
 # Useful when firewall blocks ICMP but ports are open
 ```
 
+**When to use:** after normal discovery looks incomplete. `-Pn` is how you keep moving when host discovery is being filtered.
+
 ---
 
 ## 1.5 Masscan — Ultra-fast Sweep
@@ -86,6 +108,8 @@ sudo masscan 10.10.10.0/24 -p22,80,443 --rate=5000
 ```
 
 **Note:** masscan is very loud — not for stealth engagements.
+
+**Use carefully:** this is useful for speed, not subtlety. Rate and scope should match the environment.
 
 ---
 
@@ -106,7 +130,17 @@ for i in $(seq 1 254); do ping -c1 -W1 192.168.1.$i &>/dev/null && echo "192.168
 - [ ] Run ARP scan if on local network
 - [ ] Run nmap -sn ping sweep
 - [ ] Try -Pn if hosts appear down but ports are open
+- [ ] Compare results from more than one method if output looks incomplete
 - [ ] Save all live IPs to a file for next phase
+
+---
+
+## Common Mistakes
+
+- Assuming one empty ping sweep means nothing is alive
+- Forgetting that ARP is usually better on local networks
+- Starting full port scans before validating which hosts are real
+- Not recording which method found each host
 
 ---
 
