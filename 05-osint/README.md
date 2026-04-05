@@ -3,6 +3,29 @@
 > Goal: gather intelligence without touching the target directly.
 > No active connections — zero traces on target systems.
 
+## Quick Decision Flow
+
+```text
+Start with ownership and public footprint
+    |
+    +--> WHOIS / ASN / company identifiers
+    |
+    +--> certificates and historical URLs
+    |
+    +--> public search engines and breach-style clues
+    |
+    +--> GitHub, Shodan, and Censys enrichment
+    |
+    +--> build a cleaner asset list before active recon
+```
+
+## What This Phase Should Produce
+
+- domains, subdomains, and aliases worth tracking
+- public references to services, files, people, or infrastructure
+- third-party providers and exposed technology clues
+- a cleaner starting point for active phases
+
 ---
 
 ## 5.1 Google Dorks
@@ -47,6 +70,8 @@ cache:target.com
 
 **Reference:** [exploit-db.com/google-hacking-database](https://www.exploit-db.com/google-hacking-database)
 
+**Practical note:** use dorks to narrow the search space, not to replace validation. Search results are hints, not proof.
+
 ---
 
 ## 5.2 theHarvester — Email & Domain OSINT
@@ -69,6 +94,8 @@ theHarvester -d target.com -b google -l 100
 ```
 
 **Sources available:** google, bing, duckduckgo, github, linkedin, shodan, hunter, anubis, certspotter, etc.
+
+**Best use:** fast collection of emails, hosts, and subdomains that can later be validated elsewhere.
 
 ---
 
@@ -106,6 +133,8 @@ country:US
 ```
 
 **Web interface:** [shodan.io](https://shodan.io) — free account gives limited results.
+
+**Use carefully:** Shodan data can be old. Good for pivots and clues, not for assuming current exposure without confirmation.
 
 ---
 
@@ -190,11 +219,14 @@ curl -s "https://crt.sh/?q=%.target.com&output=json" | \
 # org:targetorg filename:config.php
 
 # CLI with gh tool
-gh search repos "target.com password" --limit 20
+gh search code '"target.com" password' --limit 20
+gh search code 'org:targetorg filename:.env' --limit 20
 
 # Gitleaks — scan repos for secrets
 gitleaks detect --source . -v
 ```
+
+**Important:** for GitHub recon, searching code is usually much more useful than searching repository names.
 
 ---
 
@@ -228,6 +260,16 @@ echo "user@target.com" | grep -E "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,
 - [ ] Wayback Machine / gau — historical URLs
 - [ ] GitHub — exposed secrets or source code
 - [ ] Censys — additional infrastructure data
+
+---
+
+## Common Mistakes
+
+- Treating OSINT results as current truth without validating freshness
+- Ignoring certificate transparency even though it often gives fast subdomain wins
+- Searching GitHub repositories instead of code content
+- Collecting too much raw data without cleaning it into a usable asset list
+- Forgetting that passive recon should still respect scope and context
 
 ---
 

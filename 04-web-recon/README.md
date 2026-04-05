@@ -3,6 +3,29 @@
 > Goal: map the web attack surface — directories, endpoints, tech stack, parameters.
 > Usually the richest phase for CTFs and bug bounty.
 
+## Quick Decision Flow
+
+```text
+Start with the visible application
+    |
+    +--> fingerprint tech and response behavior
+    |
+    +--> inspect headers, cookies, redirects, and TLS
+    |
+    +--> enumerate content with wordlists
+    |
+    +--> crawl and inspect JavaScript
+    |
+    +--> fuzz parameters only after real endpoints exist
+```
+
+## What This Phase Should Produce
+
+- a list of live web entry points
+- the likely stack, framework, or CMS
+- interesting paths, files, parameters, and hidden endpoints
+- notes on auth, redirects, WAF behavior, and client-side clues
+
 ---
 
 ## 4.1 Technology Fingerprinting
@@ -27,6 +50,8 @@ curl -sv http://target.com 2>&1 | head -50
 ```
 
 **Look for:** Server header, X-Powered-By, Set-Cookie (session tech), Content-Security-Policy.
+
+**Practical note:** before fuzzing aggressively, understand redirects, default response sizes, and whether a WAF is shaping what you see.
 
 ---
 
@@ -97,6 +122,8 @@ feroxbuster -u http://target.com -w wordlist.txt -d 2
 feroxbuster -u http://target.com -w wordlist.txt --filter-status 404,403
 ```
 
+**Rule of thumb:** start with a normal directory wordlist and learn the application's response pattern first. Recursion and large extension sets make more sense after the first signal.
+
 ---
 
 ## 4.3 Parameter Fuzzing
@@ -118,6 +145,8 @@ ffuf -w params.txt \
 ffuf -w /usr/share/seclists/Fuzzing/LFI/LFI-LFISuite-pathtotest.txt \
      -u "http://target.com/page?file=FUZZ"
 ```
+
+**When to use:** after you already know the endpoint matters. Blindly fuzzing random parameters too early creates noise and weak notes.
 
 ---
 
@@ -153,6 +182,8 @@ python3 linkfinder.py -i http://target.com/app.js -o cli
 # Beautify minified JS
 curl http://target.com/app.min.js | js-beautify > app-readable.js
 ```
+
+**What I usually look for in JS:** API base paths, hidden routes, tokens, environment names, third-party services, and admin-only functionality.
 
 ---
 
@@ -200,6 +231,16 @@ curl -s "https://crt.sh/?q=%.target.com&output=json" | jq '.[].name_value' | sor
 - [ ] Parameter fuzzing on discovered endpoints
 - [ ] SSL cert inspection (crt.sh, openssl)
 - [ ] Crawl for hidden links
+
+---
+
+## Common Mistakes
+
+- Fuzzing before understanding normal responses, redirects, and baseline sizes
+- Treating every 200 response as valid content without filtering
+- Ignoring JavaScript even when the app is clearly client-heavy
+- Jumping to parameter fuzzing before identifying meaningful endpoints
+- Missing alternate ports or hostnames that serve different web apps
 
 ---
 
