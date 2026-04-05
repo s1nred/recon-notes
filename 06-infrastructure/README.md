@@ -3,6 +3,29 @@
 > Goal: map the network infrastructure — ASN, IP ranges, routing, cloud services.
 > Useful for understanding the full scope of a target organization.
 
+## Quick Decision Flow
+
+```text
+Start with ownership
+    |
+    +--> WHOIS / ASN / IP ranges
+    |
+    +--> map routing and provider clues
+    |
+    +--> identify cloud, CDN, and certificate relationships
+    |
+    +--> look for adjacent assets or origin exposure
+    |
+    +--> decide what belongs in active scope next
+```
+
+## What This Phase Should Produce
+
+- a better view of what the organization owns
+- provider, cloud, and CDN clues
+- origin infrastructure hints behind public-facing services
+- possible pivots into related hosts, ranges, or environments
+
 ---
 
 ## 6.1 ASN & IP Range Discovery
@@ -28,6 +51,8 @@ amass intel -org "Target Company"
 shodan search 'asn:AS12345'
 ```
 
+**Practical note:** this phase is strongest when you correlate ownership data from more than one source instead of trusting a single lookup.
+
 ---
 
 ## 6.2 Traceroute & Network Path
@@ -49,6 +74,8 @@ nmap -sn --traceroute 10.10.10.5
 # TCP traceroute (bypass ICMP blocks)
 sudo tcptraceroute target.com 80
 ```
+
+**Why it matters:** routing and latency patterns can reveal where a target really lives and whether traffic is being fronted by another layer.
 
 ---
 
@@ -76,6 +103,8 @@ curl -s http://target-backup.s3.amazonaws.com/
 aws s3 ls s3://target-backup --no-sign-request
 ```
 
+**Look for:** storage endpoints, CDN hostnames, managed app domains, and cloud naming patterns that leak internal structure.
+
 ---
 
 ## 6.4 SSL/TLS Infrastructure Mapping
@@ -98,6 +127,8 @@ echo | openssl s_client -connect target.com:443 2>/dev/null | \
 # testssl.sh — comprehensive SSL audit
 ./testssl.sh target.com
 ```
+
+**Useful pivot:** SANs and issuer details often expose sibling domains, staging names, or shared infrastructure.
 
 ---
 
@@ -123,6 +154,8 @@ dig A dev.target.com
 # 4. SSL cert SAN IPs
 # 5. Shodan: "ssl.cert.subject.CN:target.com"
 ```
+
+**Important:** real IP discovery is sensitive work. Only pursue it where it is authorized and relevant to the engagement.
 
 ---
 
@@ -172,6 +205,16 @@ nmap -sU --script nbstat.nse -p137 10.10.10.5
 ldapsearch -x -H ldap://10.10.10.5 -b "dc=target,dc=com"
 nmap -p 389 --script ldap-search 10.10.10.5
 ```
+
+---
+
+## Common Mistakes
+
+- Treating infrastructure clues as separate from recon when they often explain everything else
+- Assuming a CDN or cloud front means there is nothing useful behind it
+- Failing to correlate certificates, DNS, and provider metadata together
+- Chasing adjacent assets without checking whether they are actually in scope
+- Forgetting that MX, SPF, and DMARC records can map real infrastructure fast
 
 ---
 

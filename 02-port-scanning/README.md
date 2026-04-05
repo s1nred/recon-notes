@@ -3,6 +3,29 @@
 > Goal: identify open ports, running services, versions, and OS.
 > This is the most important phase — it defines your attack surface.
 
+## Quick Decision Flow
+
+```text
+Start broad
+    |
+    +--> find open TCP ports first
+    |
+    +--> run focused service detection on confirmed ports
+    |
+    +--> inspect high-value services manually
+    |
+    +--> check UDP where the target profile justifies it
+    |
+    +--> pivot into web, DNS, SMB, mail, or remote access paths
+```
+
+## What This Phase Should Produce
+
+- a reliable list of open ports
+- service names and likely versions
+- the small set of ports worth deeper manual enumeration
+- output files you can reuse in later phases
+
 ---
 
 ## 2.1 Nmap — Basic Scans
@@ -24,6 +47,8 @@ nmap -p 1-10000 10.10.10.5
 nmap -F 10.10.10.5
 ```
 
+**Rule of thumb:** use a quick broad TCP pass first, then spend time only on the ports that actually answered.
+
 ---
 
 ## 2.2 Nmap — Service & Version Detection
@@ -42,6 +67,8 @@ nmap -A 10.10.10.5
 nmap -sV --version-intensity 5 10.10.10.5
 ```
 
+**Practical note:** `-sC -sV` is usually a better default than jumping straight to `-A`. It gives strong signal with less noise.
+
 ---
 
 ## 2.3 Nmap — OS Detection
@@ -56,6 +83,8 @@ sudo nmap -O -sV 10.10.10.5
 # OS detection with guessing if uncertain
 sudo nmap -O --osscan-guess 10.10.10.5
 ```
+
+**Keep expectations realistic:** OS detection is useful as a hint, not a guaranteed truth, especially through filtered or proxied networks.
 
 ---
 
@@ -72,6 +101,8 @@ sudo nmap -sU --top-ports 20 10.10.10.5
 # 53 (DNS), 161 (SNMP), 123 (NTP), 137 (NetBIOS), 500 (IKE)
 sudo nmap -sU -p 53,123,161,137,500 10.10.10.5
 ```
+
+**When to use:** do not treat full UDP coverage as a default. It is slower and usually makes more sense after TCP results suggest what the host actually is.
 
 ---
 
@@ -109,6 +140,8 @@ rustscan -a 10.10.10.5 -r 1-65535 -- -sV
 
 **Workflow:** use RustScan to find open ports fast → feed to Nmap for service details.
 
+**Good fit:** lab environments, HTB-style targets, and situations where speed matters more than subtlety.
+
 ---
 
 ## 2.7 Masscan — High-speed TCP Scan
@@ -123,6 +156,8 @@ sudo masscan 10.10.10.5 -p0-65535 --rate=10000 -oG masscan.txt
 # Multiple targets
 sudo masscan 10.10.10.0/24 -p22,80,443 --rate=5000
 ```
+
+**Use carefully:** fast does not mean precise. Validate masscan hits with Nmap before treating them as real findings.
 
 ---
 
@@ -169,6 +204,16 @@ nmap -sC -sV -p$ports 10.10.10.5 -oN detailed.txt
 - [ ] Banner grab on interesting services
 - [ ] OS fingerprinting (-O)
 - [ ] Save all output to files
+
+---
+
+## Common Mistakes
+
+- Running detailed scans against all ports instead of only open ones
+- Trusting service names without checking banners or behavior
+- Treating OS detection as certain when it is only a fingerprint guess
+- Ignoring UDP entirely on targets that look like network appliances or Windows infrastructure
+- Failing to save scan output in reusable formats
 
 ---
 

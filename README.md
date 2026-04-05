@@ -25,6 +25,7 @@ recon-notes/
 ├── 04-web-recon/
 ├── 05-osint/
 ├── 06-infrastructure/
+├── examples/
 └── templates/
 ```
 
@@ -84,6 +85,10 @@ The `templates/` directory contains practical note formats for:
 - recon checklists
 - findings writeups
 - scan result notes
+
+## Examples
+
+The `examples/` directory contains short, realistic walkthroughs that show how I turn scattered recon output into actual notes and next steps.
 
 ## Core Tools
 
